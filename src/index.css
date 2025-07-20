@@ -113,6 +113,13 @@
   --sidebar-ring: oklch(0.446 0.043 257.281);
 }
 
+.sonner-toaster {
+  z-index: 9999 !important;
+  position: fixed !important;
+  bottom: 1rem !important;
+  right: 1rem !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
