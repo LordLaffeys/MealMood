@@ -13,9 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter} from '@/components/ui/dialog'
 import { toast } from 'vue-sonner'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 
 const isAuthenticated = ref(false) // Controls whether to show the app or the auth pages
 const authPage = ref('login') // Can be 'login' or 'signup'
+
+const hasCompletedOnboarding = ref(false)
 
 // --- State and Data ---
 const currentPage = ref('dashboard')
@@ -61,6 +64,12 @@ const handleSignUp = () => {
   // In a real app, you would create the user account here.
   toast.success('Account Created!', { description: 'Please log in with your new credentials.' });
   authPage.value = 'login'; // Redirect to login page
+}
+
+// 3. Added a function to handle the completion of the onboarding form.
+const handleOnboardingComplete = () => {
+  hasCompletedOnboarding.value = true;
+  toast.success('Preferences Saved!', { description: 'Welcome to MealMood!' });
 }
 
 // --- Theme Management ---
@@ -186,6 +195,9 @@ const preferences = ref({
   isGlutenFree: localStorage.getItem('isGlutenFree') === 'true',
 })
 
+const preferredCuisines = ref(['italian']);
+const preferredMealTypes = ref(['Breakfast', 'Dinner']);
+
 watch(preferences, (newPrefs) => {
   localStorage.setItem('isVegetarian', newPrefs.isVegetarian.toString())
   localStorage.setItem('isVegan', newPrefs.isVegan.toString())
@@ -273,7 +285,61 @@ watch(preferences, (newPrefs) => {
     </div>
   </div>
 
-  <div v-else class="min-h-screen w-full bg-background text-foreground flex">
+  <div v-else-if="!hasCompletedOnboarding" class="min-h-screen w-full bg-background text-foreground flex items-center justify-center p-4">
+    <Card class="w-full max-w-2xl">
+      <CardHeader class="text-center">
+        <CardTitle class="text-2xl">Tell us about yourself</CardTitle>
+        <CardDescription>These preferences will help us tailor your meal recommendations.</CardDescription>
+      </CardHeader>
+      <CardContent class="space-y-6">
+        <div class="space-y-2">
+          <Label class="font-semibold">Dietary Needs & Restrictions</Label>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="flex items-center justify-between rounded-lg border p-3">
+              <Label for="vegetarian" class="flex items-center gap-2"><Leaf class="h-4 w-4" /> Vegetarian</Label>
+              <Switch id="vegetarian" v-model:checked="preferences.isVegetarian" />
+            </div>
+            <div class="flex items-center justify-between rounded-lg border p-3">
+              <Label for="vegan" class="flex items-center gap-2"><Salad class="h-4 w-4" /> Vegan</Label>
+              <Switch id="vegan" v-model:checked="preferences.isVegan" />
+            </div>
+            <div class="flex items-center justify-between rounded-lg border p-3">
+              <Label for="gluten-free" class="flex items-center gap-2"><WheatOff class="h-4 w-4" /> Gluten-Free</Label>
+              <Switch id="gluten-free" v-model:checked="preferences.isGlutenFree" />
+            </div>
+            <div class="flex items-center justify-between rounded-lg border p-3">
+              <Label for="nut-allergy" class="flex items-center gap-2"><Drumstick class="h-4 w-4" /> Nut Allergy</Label>
+              <Switch id="nut-allergy" v-model:checked="preferences.hasNutAllergy" />
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <Label class="font-semibold">Preferred Cuisines</Label>
+          <ToggleGroup type="multiple" variant="outline">
+            <ToggleGroupItem value="italian">Italian</ToggleGroupItem>
+            <ToggleGroupItem value="mexican">Mexican</ToggleGroupItem>
+            <ToggleGroupItem value="asian">Asian</ToggleGroupItem>
+            <ToggleGroupItem value="american">American</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
+        <div class="space-y-2">
+          <Label class="font-semibold">Preferred Meal Types</Label>
+          <ToggleGroup type="multiple" variant="outline">
+            <ToggleGroupItem value="breakfast">Breakfast</ToggleGroupItem>
+            <ToggleGroupItem value="lunch">Lunch</ToggleGroupItem>
+            <ToggleGroupItem value="dinner">Dinner</ToggleGroupItem>
+            <ToggleGroupItem value="snacks">Snacks</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        
+        <Button @click="handleOnboardingComplete" class="w-full">Save & Continue</Button>
+      </CardContent>
+    </Card>
+  </div>
+
+  <div v-else class="h-screen w-full bg-background text-foreground flex overflow-hidden">
     <!-- Sidebar for desktop -->
     <aside class="hidden md:flex flex-col w-64 bg-card border-r p-4 space-y-2">
       <div class="flex items-center space-x-2 px-4 pb-4">
@@ -294,9 +360,12 @@ watch(preferences, (newPrefs) => {
       </Button>
     </aside>
 
-
+    
     <main class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto pb-20 md:pb-8" style="z-index: 1;">
       <Dialog :open="!!selectedRecipe" @update:open="selectedRecipe = null" aria-label="Recipe details">
+
+        <!-- DASHHBOARD -->
+
         <div v-if="currentPage === 'dashboard'" class="space-y-8">
           <div>
             <h2 class="text-3xl font-bold tracking-tight">Good Morning, Alex!</h2>
@@ -388,6 +457,8 @@ watch(preferences, (newPrefs) => {
           </div>
         </div>
 
+        <!-- Mood Tracker -->
+
         <div v-if="currentPage === 'moodtracker'" class="space-y-8">
           <div>
             <h2 class="text-3xl font-bold tracking-tight">What's your mood right now?</h2>
@@ -450,7 +521,8 @@ watch(preferences, (newPrefs) => {
             <p v-else class="text-muted-foreground text-center py-8">No matching recommendations for this mood and ingredients. Try another combination!</p>
           </div>
         </div>
-
+        
+        <!-- RECIPES -->
         <div v-if="currentPage === 'recipes'" class="space-y-8">
           <div>
             <h2 class="text-3xl font-bold tracking-tight">Explore Recipes</h2>
@@ -503,64 +575,120 @@ watch(preferences, (newPrefs) => {
           </div>
         </div>
 
+        <!-- PROFILE -->
         <div v-if="currentPage === 'profile'" class="space-y-8 max-w-2xl mx-auto">
           <div>
-            <h2 class="text-3xl font-bold tracking-tight">Your Profile & Preferences</h2>
-            <p class="text-muted-foreground mt-1">Manage your account and dietary needs.</p>
+              <h2 class="text-3xl font-bold tracking-tight">Your Profile & Preferences</h2>
+              <p class="text-muted-foreground mt-1">Manage your account and dietary needs.</p>
           </div>
           <Card>
-            <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
-            <CardContent class="space-y-4">
-              <div class="space-y-2">
-                <Label for="name">Name</Label>
-                <Input id="name" value="Alex Doe" />
-              </div>
-              <div class="space-y-2">
-                <Label for="email">Email</Label>
-                <Input id="email" type="email" value="alex.doe@example.com" />
-              </div>
-            </CardContent>
+              <CardHeader><CardTitle>Personal Information</CardTitle></CardHeader>
+              <CardContent class="space-y-4">
+                  <div class="space-y-2">
+                      <Label for="name">Name</Label>
+                      <Input id="name" value="Alex Doe" />
+                  </div>
+                  <div class="space-y-2">
+                      <Label for="email">Email</Label>
+                      <Input id="email" type="email" value="alex.doe@example.com" />
+                  </div>
+              </CardContent>
           </Card>
           <Card>
-            <CardHeader>
-              <CardTitle>Dietary Preferences</CardTitle>
-              <CardDescription>Help us tailor recommendations for you.</CardDescription>
-            </CardHeader>
-            <CardContent class="space-y-4">
-              <div class="flex items-center justify-between">
-                <Label class="flex items-center gap-2"><Leaf class="h-4 w-4" /> Vegetarian</Label>
-                <Switch v-model:checked="preferences.isVegetarian" />
-              </div>
-              <div class="flex items-center justify-between">
-                <Label class="flex items-center gap-2"><Salad class="h-4 w-4" /> Vegan</Label>
-                <Switch v-model:checked="preferences.isVegan" />
-              </div>
-              <div class="flex items-center justify-between">
-                <Label class="flex items-center gap-2"><WheatOff class="h-4 w-4" /> Gluten-Free</Label>
-                <Switch v-model:checked="preferences.isGlutenFree" />
-              </div>
-              <div class="flex items-center justify-between">
-                <Label class="flex items-center gap-2"><Sun class="h-4 w-4 dark:hidden" /><Moon class="h-4 w-4 hidden dark:block" /> Dark Mode</Label>
-                <Switch v-model:checked="isDarkMode" />
-              </div>
-            </CardContent>
+              <CardHeader>
+                  <CardTitle>Dietary Preferences</CardTitle>
+                  <CardDescription>Help us tailor recommendations for you.</CardDescription>
+              </CardHeader>
+              <CardContent class="space-y-4">
+                  <div class="flex items-center justify-between">
+                      <Label class="flex items-center gap-2"><Leaf class="h-4 w-4" /> Vegetarian</Label>
+                      <Switch v-model:checked="preferences.isVegetarian" />
+                  </div>
+                  <div class="flex items-center justify-between">
+                      <Label class="flex items-center gap-2"><Salad class="h-4 w-4" /> Vegan</Label>
+                      <Switch v-model:checked="preferences.isVegan" />
+                  </div>
+                  <div class="flex items-center justify-between">
+                      <Label class="flex items-center gap-2"><WheatOff class="h-4 w-4" /> Gluten-Free</Label>
+                      <Switch v-model:checked="preferences.isGlutenFree" />
+                  </div>
+                  <div class="flex items-center justify-between">
+                      <Label class="flex items-center gap-2"><WheatOff class="h-4 w-4" /> Halal</Label>
+                      <Switch v-model:checked="preferences.isGlutenFree" />
+                  </div>
+              </CardContent>
           </Card>
           <Card>
-            <CardHeader>
-              <CardTitle>Allergies</CardTitle>
-              <CardDescription>Let us know about any allergies to keep you safe.</CardDescription>
-            </CardHeader>
-            <CardContent class="space-y-4">
-              <div class="flex items-center justify-between">
-                <Label class="flex items-center gap-2"><Drumstick class="h-4 w-4" /> Nut Allergy</Label>
-                <Switch v-model:checked="preferences.hasNutAllergy" />
-              </div>
-            </CardContent>
+              <CardHeader>
+                  <CardTitle>Allergies</CardTitle>
+              </CardHeader>
+              <CardContent class="space-y-4">
+                  <div class="flex items-center justify-between">
+                      <Label class="flex items-center gap-2"><Drumstick class="h-4 w-4" /> Nut Allergy</Label>
+                      <Switch v-model:checked="preferences.hasNutAllergy" />
+                  </div>
+                  <div class="flex items-center justify-between">
+                      <Label class="flex items-center gap-2"><Drumstick class="h-4 w-4" /> Dairy Allergy</Label>
+                      <Switch v-model:checked="preferences.hasNutAllergy" />
+                  </div>
+                  <div class="flex items-center justify-between">
+                      <Label class="flex items-center gap-2"><Drumstick class="h-4 w-4" /> Egg Allergy</Label>
+                      <Switch v-model:checked="preferences.hasNutAllergy" />
+                  </div>
+                  <div class="flex items-center justify-between">
+                      <Label class="flex items-center gap-2"><Drumstick class="h-4 w-4" /> Fish Allergy</Label>
+                      <Switch v-model:checked="preferences.hasNutAllergy" />
+                  </div>
+                  <div class="flex items-center justify-between">
+                      <Label class="flex items-center gap-2"><Drumstick class="h-4 w-4" /> Shellfish Allergy</Label>
+                      <Switch v-model:checked="preferences.hasNutAllergy" />
+                  </div>
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader>
+                  <CardTitle>Preferred Cuisines</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ToggleGroup type="multiple" variant="outline" v-model="preferredCuisines">
+                  <ToggleGroupItem value="italian">Italian</ToggleGroupItem>
+                  <ToggleGroupItem value="mexican">Mexican</ToggleGroupItem>
+                  <ToggleGroupItem value="asian">Asian</ToggleGroupItem>
+                  <ToggleGroupItem value="american">American</ToggleGroupItem>
+                </ToggleGroup>
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader>
+                  <CardTitle>Preferred Meal Types</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ToggleGroup type="multiple" variant="outline" v-model="preferredMealTypes">
+                  <ToggleGroupItem value="breakfast">Breakfast</ToggleGroupItem>
+                  <ToggleGroupItem value="lunch">Lunch</ToggleGroupItem>
+                  <ToggleGroupItem value="dinner">Dinner</ToggleGroupItem>
+                  <ToggleGroupItem value="snacks">Snacks</ToggleGroupItem>
+                </ToggleGroup>
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader>
+                  <CardTitle>App Settings</CardTitle>
+              </CardHeader>
+              <CardContent class="space-y-4">
+                  <div class="flex items-center justify-between">
+                      <Label class="flex items-center gap-2"><Sun class="h-4 w-4 dark:hidden" /><Moon class="h-4 w-4 hidden dark:block" /> Dark Mode</Label>
+                      <Switch v-model:checked="isDarkMode" />
+                  </div>
+              </CardContent>
           </Card>
           <div class="flex justify-end">
-            <Button class="px-8 py-2">Save Changes</Button>
+              <Button class="px-8 py-2">Save Changes</Button>
           </div>
         </div>
+
+
+        <!-- MOBILE -->
 
         <DialogContent v-if="selectedRecipe" class="sm:max-w-[625px] grid-rows-[auto_1fr_auto] p-0 max-h-[90vh]" aria-label="Recipe details">
           <img :src="selectedRecipe.image" :alt="selectedRecipe.title" class="w-full h-60 object-cover rounded-t-lg">
