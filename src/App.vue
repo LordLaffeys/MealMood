@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 import { debounce } from 'lodash'
-import { Home, UtensilsCrossed, Smile, User, Search, Heart, Soup, Salad, Pizza, Clock, Leaf, WheatOff, Drumstick, Sun, Moon } from 'lucide-vue-next'
+import { Home, UtensilsCrossed, Smile, User, Search, Heart, Soup, Salad, Pizza, Clock, Leaf, WheatOff, Drumstick, Sun, Moon, AngryIcon, Frown, Cloudy, Meh } from 'lucide-vue-next'
+import Chart from 'primevue/chart';
 
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card'
@@ -24,19 +25,19 @@ const hasCompletedOnboarding = ref(false)
 const currentPage = ref('dashboard')
 
 const mockRecipes = ref([
-  { id: 4, title: "Avocado Toast with Egg", description: "A simple and satisfying breakfast.", mood: "Happy", time: 10, diet: "Vegetarian", image: "https://placehold.co/600x400/34d399/ffffff?text=Avocado+Toast", ingredients: ["Bread", "Avocado", "Egg", "Chili Flakes"], instructions: ["Toast your bread.", "Mash avocado on toast.", "Top with a fried egg."], mealType: "Breakfast", trending: true, favorite: true },
-  { id: 3, title: "Happy Chicken Salad", description: "A joyful and protein-packed salad.", mood: "Happy", time: 20, diet: "High-Protein", image: "https://placehold.co/600x400/fb923c/ffffff?text=Chicken+Salad", ingredients: ["Chicken", "Lettuce", "Tomatoes", "Avocado", "Vegetables"], instructions: ["Grill chicken breast.", "Chop vegetables.", "Combine and serve."], mealType: "Lunch", trending: true, favorite: false },
-  { id: 7, title: "15-Min Lemon Garlic Tilapia", description: "Super fast and light for when you're tired.", mood: "Tired", time: 15, diet: "High-Protein", image: "https://placehold.co/600x400/38bdf8/ffffff?text=Tilapia", ingredients: ["Tilapia", "Fish", "Garlic", "Lemon"], instructions: ["Season tilapia.", "Pan-sear for 3-4 mins per side.", "Squeeze lemon juice over."], mealType: "Dinner", trending: false, favorite: false },
-  { id: 1, title: "Hearty Lentil Soup", description: "A warm and comforting soup.", mood: "Stressed", time: 30, diet: "Vegan", image: "https://placehold.co/600x400/f87171/ffffff?text=Lentil+Soup", ingredients: ["Lentils", "Carrots", "Celery", "Onion", "Vegetables"], instructions: ["Sauté vegetables.", "Add lentils and broth.", "Simmer for 25 mins."], mealType: "Dinner", trending: true, favorite: false },
-  { id: 2, title: "Quinoa Salad", description: "A light and refreshing salad.", mood: "Happy", time: 15, diet: "Vegetarian", image: "https://placehold.co/600x400/4ade80/ffffff?text=Quinoa+Salad", ingredients: ["Quinoa", "Cucumber", "Tomatoes", "Feta", "Vegetables"], instructions: ["Cook quinoa.", "Chop vegetables.", "Combine and dress."], mealType: "Lunch", trending: false, favorite: true },
-  { id: 5, title: "Spicy Black Bean Burgers", description: "Flavor-packed burgers.", mood: "Energized", time: 40, diet: "Vegan", image: "https://placehold.co/600x400/a78bfa/ffffff?text=Bean+Burger", ingredients: ["Black Beans", "Breadcrumbs", "Onion", "Spices", "Vegetables"], instructions: ["Mash beans.", "Form patties.", "Cook on a skillet."], mealType: "Dinner", trending: false, favorite: false },
-  { id: 6, title: "Creamy Tomato Pasta", description: "Classic comfort food.", mood: "Stressed", time: 25, diet: "Vegetarian", image: "https://placehold.co/600x400/f472b6/ffffff?text=Tomato+Pasta", ingredients: ["Pasta", "Tomatoes", "Garlic", "Cream", "Basil"], instructions: ["Cook pasta.", "Make the sauce.", "Combine and serve."], mealType: "Dinner", trending: true, favorite: true },
-  { id: 8, title: "Greek Yogurt Parfait", description: "A healthy and quick breakfast option.", mood: "Energized", time: 5, diet: "Vegetarian", image: "https://placehold.co/600x400/fde047/ffffff?text=Parfait", ingredients: ["Greek Yogurt", "Granola", "Berries", "Honey"], instructions: ["Layer yogurt, granola, and berries in a glass.", "Drizzle with honey.", "Serve immediately."], mealType: "Breakfast", trending: false, favorite: true },
-  { id: 9, title: "Beef and Broccoli", description: "A classic takeout dish made at home.", mood: "Stressed", time: 30, diet: "High-Protein", image: "https://placehold.co/600x400/7c3aed/ffffff?text=Beef+Broccoli", ingredients: ["Beef", "Broccoli", "Soy Sauce", "Ginger", "Garlic", "Rice"], instructions: ["Slice beef thinly.", "Stir-fry beef until browned.", "Add broccoli and sauce, then simmer."], mealType: "Dinner", trending: true, favorite: false },
-  { id: 10, title: "Caprese Sandwich", description: "A simple and elegant lunch.", mood: "Happy", time: 10, diet: "Vegetarian", image: "https://placehold.co/600x400/ef4444/ffffff?text=Caprese", ingredients: ["Baguette", "Tomatoes", "Mozzarella", "Basil", "Balsamic Glaze"], instructions: ["Slice baguette, tomatoes, and mozzarella.", "Layer ingredients on the bread.", "Drizzle with balsamic glaze."], mealType: "Lunch", trending: false, favorite: false },
-  { id: 11, title: "Energizing Smoothie", description: "A green smoothie to kickstart your day.", mood: "Tired", time: 5, diet: "Vegan", image: "https://placehold.co/600x400/22c55e/ffffff?text=Smoothie", ingredients: ["Spinach", "Banana", "Almond Milk", "Protein Powder"], instructions: ["Combine all ingredients in a blender.", "Blend until smooth.", "Enjoy immediately."], mealType: "Breakfast", trending: true, favorite: false },
-  { id: 12, title: "Sheet Pan Lemon Herb Chicken", description: "An easy one-pan dinner.", mood: "Tired", time: 45, diet: "High-Protein", image: "https://placehold.co/600x400/f97316/ffffff?text=Sheet+Pan+Chicken", ingredients: ["Chicken", "Potatoes", "Green Beans", "Lemon", "Herbs", "Vegetables"], instructions: ["Toss all ingredients with olive oil and herbs.", "Arrange on a sheet pan.", "Bake at 400°F (200°C) for 30-35 minutes."], mealType: "Dinner", trending: false, favorite: true },
-])
+  { id: 4, title: "Avocado Toast with Egg", description: "A simple and satisfying breakfast.", mood: "Happy", time: 10, diet: "Vegetarian", image: "https://placehold.co/600x400/34d399/ffffff?text=Avocado+Toast", ingredients: ["Bread", "Avocado", "Egg", "Chili Flakes"], instructions: ["Toast your bread.", "Mash avocado on toast.", "Top with a fried egg.", "Toast your bread.", "Mash avocado on toast.", "Top with a fried egg.", "Toast your bread.", "Mash avocado on toast.", "Top with a fried egg."], mealType: "Breakfast", trending: true, favorite: true, cuisine: "American" },
+  { id: 3, title: "Happy Chicken Salad", description: "A joyful and protein-packed salad.", mood: "Happy", time: 20, diet: "High-Protein", image: "https://placehold.co/600x400/fb923c/ffffff?text=Chicken+Salad", ingredients: ["Chicken", "Lettuce", "Tomatoes", "Avocado", "Vegetables"], instructions: ["Grill chicken breast.", "Chop vegetables.", "Combine and serve."], mealType: "Lunch", trending: true, favorite: false, cuisine: "American" },
+  { id: 7, title: "15-Min Lemon Garlic Tilapia", description: "Super fast and light for when you're tired.", mood: "Tired", time: 15, diet: "High-Protein", image: "https://placehold.co/600x400/38bdf8/ffffff?text=Tilapia", ingredients: ["Tilapia", "Fish", "Garlic", "Lemon"], instructions: ["Season tilapia.", "Pan-sear for 3-4 mins per side.", "Squeeze lemon juice over."], mealType: "Dinner", trending: false, favorite: false, cuisine: "American" },
+  { id: 1, title: "Hearty Lentil Soup", description: "A warm and comforting soup.", mood: "Stressed", time: 30, diet: "Vegan", image: "https://placehold.co/600x400/f87171/ffffff?text=Lentil+Soup", ingredients: ["Lentils", "Carrots", "Celery", "Onion", "Vegetables"], instructions: ["Sauté vegetables.", "Add lentils and broth.", "Simmer for 25 mins."], mealType: "Dinner", trending: true, favorite: false, cuisine: "Italian" },
+  { id: 2, title: "Quinoa Salad", description: "A light and refreshing salad.", mood: "Happy", time: 15, diet: "Vegetarian", image: "https://placehold.co/600x400/4ade80/ffffff?text=Quinoa+Salad", ingredients: ["Quinoa", "Cucumber", "Tomatoes", "Feta", "Vegetables"], instructions: ["Cook quinoa.", "Chop vegetables.", "Combine and dress."], mealType: "Lunch", trending: false, favorite: true, cuisine: "American" },
+  { id: 5, title: "Spicy Black Bean Burgers", description: "Flavor-packed burgers.", mood: "Angry", time: 40, diet: "Vegan", image: "https://placehold.co/600x400/a78bfa/ffffff?text=Bean+Burger", ingredients: ["Black Beans", "Breadcrumbs", "Onion", "Spices", "Vegetables"], instructions: ["Mash beans.", "Form patties.", "Cook on a skillet."], mealType: "Dinner", trending: false, favorite: false, cuisine: "Mexican" },
+  { id: 6, title: "Creamy Tomato Pasta", description: "Classic comfort food.", mood: "Sad", time: 25, diet: "Vegetarian", image: "https://placehold.co/600x400/f472b6/ffffff?text=Tomato+Pasta", ingredients: ["Pasta", "Tomatoes", "Garlic", "Cream", "Basil"], instructions: ["Cook pasta.", "Make the sauce.", "Combine and serve."], mealType: "Dinner", trending: true, favorite: true, cuisine: "Italian" },
+  { id: 8, title: "Greek Yogurt Parfait", description: "A healthy and quick breakfast option.", mood: "Bored", time: 5, diet: "Vegetarian", image: "https://placehold.co/600x400/fde047/ffffff?text=Parfait", ingredients: ["Greek Yogurt", "Granola", "Berries", "Honey"], instructions: ["Layer yogurt, granola, and berries in a glass.", "Drizzle with honey.", "Serve immediately."], mealType: "Breakfast", trending: false, favorite: true, cuisine: "American" },
+  { id: 9, title: "Beef and Broccoli", description: "A classic takeout dish made at home.", mood: "Stressed", time: 30, diet: "High-Protein", image: "https://placehold.co/600x400/7c3aed/ffffff?text=Beef+Broccoli", ingredients: ["Beef", "Broccoli", "Soy Sauce", "Ginger", "Garlic", "Rice"], instructions: ["Slice beef thinly.", "Stir-fry beef until browned.", "Add broccoli and sauce, then simmer."], mealType: "Dinner", trending: true, favorite: false, cuisine: "Asian" },
+  { id: 10, title: "Caprese Sandwich", description: "A simple and elegant lunch.", mood: "Happy", time: 10, diet: "Vegetarian", image: "https://placehold.co/600x400/ef4444/ffffff?text=Caprese", ingredients: ["Baguette", "Tomatoes", "Mozzarella", "Basil", "Balsamic Glaze"], instructions: ["Slice baguette, tomatoes, and mozzarella.", "Layer ingredients on the bread.", "Drizzle with balsamic glaze."], mealType: "Lunch", trending: false, favorite: false, cuisine: "Italian" },
+  { id: 11, title: "Energizing Smoothie", description: "A green smoothie to kickstart your day.", mood: "Tired", time: 5, diet: "Vegan", image: "https://placehold.co/600x400/22c55e/ffffff?text=Smoothie", ingredients: ["Spinach", "Banana", "Almond Milk", "Protein Powder"], instructions: ["Combine all ingredients in a blender.", "Blend until smooth.", "Enjoy immediately."], mealType: "Breakfast", trending: true, favorite: false, cuisine: "American" },
+  { id: 12, title: "Sheet Pan Lemon Herb Chicken", description: "An easy one-pan dinner.", mood: "Tired", time: 45, diet: "High-Protein", image: "https://placehold.co/600x400/f97316/ffffff?text=Sheet+Pan+Chicken", ingredients: ["Chicken", "Potatoes", "Green Beans", "Lemon", "Herbs", "Vegetables"], instructions: ["Toss all ingredients with olive oil and herbs.", "Arrange on a sheet pan.", "Bake at 400°F (200°C) for 30-35 minutes."], mealType: "Dinner", trending: false, favorite: true, cuisine: "American" },
+]);
 
 type Recipe = typeof mockRecipes.value[0]
 const selectedRecipe = ref<Recipe | null>(null)
@@ -87,11 +88,78 @@ onMounted(() => {
 })
 
 // --- Dashboard Data ---
-const dashboardMealType = ref('Breakfast')
-const trendingRecipes = computed(() => mockRecipes.value.filter(r => r.trending))
-const lastPickedRecipe = computed(() => mockRecipes.value[2])
-const quickPicks = computed(() => mockRecipes.value.filter(r => r.mealType === dashboardMealType.value).slice(0, 5))
-const favoriteRecipes = computed(() => mockRecipes.value.filter(r => r.favorite))
+const dashboardMealType = ref('Breakfast');
+const trendingRecipes = computed(() => mockRecipes.value.filter(r => r.trending));
+const lastPickedRecipe = computed(() => mockRecipes.value[2]);
+const quickPicks = computed(() => mockRecipes.value.filter(r => r.mealType === dashboardMealType.value).slice(0, 3));
+const favoriteRecipes = computed(() => mockRecipes.value.filter(r => r.favorite));
+
+// --- CHANGE START ---
+// Added new data and configuration for the weekly summary chart.
+const weeklyChartData = ref();
+const weeklyChartOptions = ref();
+
+const setChartOptions = () => {
+    const documentStyle = getComputedStyle(document.documentElement);
+    const textColor = documentStyle.getPropertyValue('--foreground').trim();
+    const textColorSecondary = documentStyle.getPropertyValue('--muted-foreground').trim();
+    const surfaceBorder = documentStyle.getPropertyValue('--border').trim();
+    
+    weeklyChartData.value = {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [
+            { type: 'bar', label: 'Happy', backgroundColor: '#22c55e', data: [2, 3, 1, 4, 2, 3, 1], stack: 'moods', order: 2 },
+            { type: 'bar', label: 'Sad', backgroundColor: '#3b82f6', data: [1, 0, 2, 0, 1, 0, 2], stack: 'moods', order: 2 },
+            { type: 'bar', label: 'Angry', backgroundColor: '#ef4444', data: [0, 1, 0, 1, 0, 1, 0], stack: 'moods', order: 2 },
+            { type: 'bar', label: 'Tired', backgroundColor: '#64748b', data: [3, 2, 4, 2, 3, 4, 3], stack: 'moods', order: 2 },
+            { type: 'bar', label: 'Stressed', backgroundColor: '#8b5cf6', data: [1, 2, 1, 3, 2, 1, 2], stack: 'moods', order: 2 },
+            { type: 'bar', label: 'Bored', backgroundColor: '#f59e0b', data: [1, 1, 0, 1, 1, 0, 1], stack: 'moods', order: 2 },
+            { type: 'line', label: 'Health Score', borderColor: '#4f46e5', tension: 0.4, data: [75, 80, 65, 85, 70, 88, 60], yAxisID: 'y1', order: 1 }
+        ]
+    };
+    weeklyChartOptions.value = {
+        maintainAspectRatio: false,
+        aspectRatio: 0.8,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { color: textColor }
+            }
+        },
+        scales: {
+            x: {
+                stacked: true,
+                ticks: { color: textColorSecondary },
+                grid: { display: false }
+            },
+            y: {
+                stacked: true,
+                ticks: { color: textColorSecondary, stepSize: 1 },
+                grid: { display: false },
+                title: { display: true, text: 'Mood Count', color: textColorSecondary },
+                max: 10
+            },
+            y1: {
+                type: 'linear',
+                display: true,
+                position: 'right',
+                ticks: { color: textColorSecondary },
+                grid: { display: false },
+                title: { display: true, text: 'Health Score (AI)', color: textColorSecondary },
+                min: 0,
+                max: 100
+            }
+        }
+    };
+};
+
+onMounted(() => {
+    setChartOptions();
+});
+
+watch(isDarkMode, () => {
+    setChartOptions();
+});
 
 // --- MoodTracker Data ---
 const selectedMood = ref<string | null>(null)
@@ -144,9 +212,11 @@ const moodRecommendations = computed(() => {
 
 const moods = [
   { name: "Happy", icon: Smile, color: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300" },
-  { name: "Tired", icon: Clock, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300" },
-  { name: "Stressed", icon: Soup, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" },
-  { name: "Energized", icon: Pizza, color: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300" },
+  { name: "Sad", icon: Frown, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300" },
+  { name: "Angry", icon: AngryIcon, color: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300" },
+  { name: "Tired", icon: Clock, color: "bg-slate-100 text-slate-700 dark:bg-slate-900/50 dark:text-slate-300" },
+  { name: "Stressed", icon: Cloudy, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300" },
+  { name: "Bored", icon: Meh, color: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300" },
 ]
 
 // --- Recipes Data ---
@@ -158,6 +228,7 @@ watch(searchTerm, debounce((newValue: string) => {
 const dietFilter = ref('All')
 const recipePageActiveKeywords = ref<string[]>([])
 const mealTypeFilter = ref('All')
+const cuisineFilter = ref('All')
 
 const toggleRecipePageIngredient = (keyword: string) => {
   const index = recipePageActiveKeywords.value.indexOf(keyword)
@@ -175,13 +246,16 @@ const filteredRecipes = computed(() => {
                          recipe.description.toLowerCase().includes(debouncedSearchTerm.value.toLowerCase())
     const matchesDiet = dietFilter.value === 'All' || recipe.diet === dietFilter.value
     const matchesMealType = mealTypeFilter.value === 'All' || recipe.mealType === mealTypeFilter.value
-    const matchesPreferences = 
-      (!preferences.value.isVegetarian || recipe.diet === 'Vegetarian' || recipe.diet === 'Vegan') &&
-      (!preferences.value.isVegan || recipe.diet === 'Vegan') &&
-      (!preferences.value.isGlutenFree || recipe.diet === 'Gluten-Free') &&
-      (!preferences.value.hasNutAllergy || !recipe.ingredients.some(ing => ing.toLowerCase().includes('nut')))
     
-    if (!matchesSearch || !matchesDiet || !matchesMealType || !matchesPreferences) return false
+    // const matchesPreferences = 
+    //   (!preferences.value.isVegetarian || recipe.diet === 'Vegetarian' || recipe.diet === 'Vegan') &&
+    //   (!preferences.value.isVegan || recipe.diet === 'Vegan') &&
+    //   (!preferences.value.isGlutenFree || recipe.diet === 'Gluten-Free') &&
+    //   (!preferences.value.hasNutAllergy || !recipe.ingredients.some(ing => ing.toLowerCase().includes('nut')))
+    
+    const matchesCuisine = cuisineFilter.value === 'All' || recipe.cuisine === cuisineFilter.value;
+    
+    if (!matchesSearch || !matchesDiet || !matchesMealType || !matchesCuisine) return false;
     if (activeKeywords.length === 0) return true
     return activeKeywords.every(searchIng => recipe.ingredients?.some(recipeIng => recipeIng.toLowerCase().includes(searchIng)))
   })
@@ -382,6 +456,16 @@ watch(preferences, (newPrefs) => {
             </CardHeader>
           </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle>Weekly Summary</CardTitle>
+              <CardDescription>Your mood and health score trends for the last 7 days.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Chart type="bar" :data="weeklyChartData" :options="weeklyChartOptions" class="h-[350px]" />
+            </CardContent>
+          </Card>
+
           <div>
             <h3 class="text-2xl font-bold tracking-tight mb-4">Quick Picks</h3>
             <div class="flex items-center border-b mb-4">
@@ -464,7 +548,7 @@ watch(preferences, (newPrefs) => {
             <h2 class="text-3xl font-bold tracking-tight">What's your mood right now?</h2>
             <p class="text-muted-foreground mt-1">Select a mood to get personalized meal suggestions.</p>
           </div>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
             <button 
               v-for="mood in moods" 
               :key="mood.name" 
@@ -498,27 +582,39 @@ watch(preferences, (newPrefs) => {
               </div>
             </CardContent>
           </Card>
-          <div v-if="selectedMood">
+          <div v-if="selectedMood && moodRecommendations.length > 0">
+              <h3 class="text-2xl font-bold tracking-tight mb-4">AI Recommendations for a <span class="text-emerald-500">{{ selectedMood }}</span> Mood</h3>
+              <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <Card v-for="recipe in moodRecommendations" :key="recipe.id" class="overflow-hidden flex flex-col">
+                      <img :src="recipe.image" :alt="recipe.title" class="w-full h-40 object-cover" />
+                      <CardHeader>
+                          <CardTitle>{{ recipe.title }}</CardTitle>
+                          <CardDescription class="mt-1">{{ recipe.description }}</CardDescription>
+                      </CardHeader>
+                      <CardContent class="flex-grow flex flex-col justify-end">
+                          <div class="flex items-center justify-between text-sm text-muted-foreground">
+                              <div class="flex items-center gap-1"><Clock class="h-4 w-4" /><span>{{ recipe.time }} min</span></div>
+                              <div class="flex items-center gap-1"><Leaf class="h-4 w-4" /><span>{{ recipe.diet }}</span></div>
+                          </div>
+                          <DialogTrigger as-child>
+                            <Button class="w-full mt-4 py-2" @click="viewRecipe(recipe)">View Recipe</Button>
+                          </DialogTrigger>
+                      </CardContent>
+                  </Card>
+              </div>
+          </div>
+          <div v-else-if="selectedMood && moodRecommendations.length === 0">
             <h3 class="text-2xl font-bold tracking-tight mb-4">AI Recommendations for a <span class="text-emerald-500">{{ selectedMood }}</span> Mood</h3>
-            <div v-if="moodRecommendations.length > 0" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card v-for="recipe in moodRecommendations" :key="recipe.id" class="overflow-hidden flex flex-col">
-                <img :src="recipe.image" :alt="recipe.title" class="w-full h-40 object-cover" />
-                <CardHeader>
-                  <CardTitle>{{ recipe.title }}</CardTitle>
-                  <CardDescription class="mt-1">{{ recipe.description }}</CardDescription>
-                </CardHeader>
-                <CardContent class="flex-grow flex flex-col justify-end">
-                  <div class="flex items-center justify-between text-sm text-muted-foreground">
-                    <div class="flex items-center gap-1"><Clock class="h-4 w-4" /><span>{{ recipe.time }} min</span></div>
-                    <div class="flex items-center gap-1"><Leaf class="h-4 w-4" /><span>{{ recipe.diet }}</span></div>
-                  </div>
-                  <DialogTrigger as-child>
-                    <Button class="w-full mt-4 py-2" @click="viewRecipe(recipe)">View Recipe</Button>
-                  </DialogTrigger>
-                </CardContent>
-              </Card>
-            </div>
-            <p v-else class="text-muted-foreground text-center py-8">No matching recommendations for this mood and ingredients. Try another combination!</p>
+            <p class="text-muted-foreground text-center py-8">No matching recommendations for this mood and ingredients. Try another combination!</p>
+          </div>
+          <div v-else>
+            <Card class="border-dashed">
+              <CardContent class="h-64 flex flex-col items-center justify-center text-center p-6">
+                <Smile class="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 class="text-lg font-semibold">Ready for a recommendation?</h3>
+                <p class="text-muted-foreground">Select a mood above to see what we suggest!</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
         
@@ -529,8 +625,8 @@ watch(preferences, (newPrefs) => {
             <p class="text-muted-foreground mt-1">Find your next favorite meal from our collection.</p>
           </div>
           <div class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div class="relative md:col-span-2">
+            <div class="flex flex-col md:flex-row md:items-center md:space-x-2 space-y-4 md:space-y-0">
+              <div class="relative flex-1">
                 <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <Input v-model="searchTerm" placeholder="Search for a recipe..." class="pl-10" />
               </div>
@@ -541,8 +637,21 @@ watch(preferences, (newPrefs) => {
                   <SelectItem value="Breakfast">Breakfast</SelectItem>
                   <SelectItem value="Lunch">Lunch</SelectItem>
                   <SelectItem value="Dinner">Dinner</SelectItem>
+                  <SelectItem value="Snacks">Snacks</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Select v-model="cuisineFilter">
+                <SelectTrigger> <SelectValue placeholder="Select a cuisine" /> </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Cuisines</SelectItem>
+                  <SelectItem value="American">American</SelectItem>
+                  <SelectItem value="Italian">Italian</SelectItem>
+                  <SelectItem value="Mexican">Mexican</SelectItem>
+                  <SelectItem value="Asian">Asian</SelectItem>
+                </SelectContent>
+              </Select>
+              
             </div>
             <div class="flex flex-wrap gap-2">
               <Button 
@@ -573,7 +682,41 @@ watch(preferences, (newPrefs) => {
               </CardContent>
             </Card>
           </div>
+
+          <div v-if="selectedMood">
+              <h3 class="text-2xl font-bold tracking-tight mb-4">AI Recommendations for a <span class="text-emerald-500">{{ selectedMood }}</span> Mood</h3>
+              <div v-if="moodRecommendations.length > 0" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <Card v-for="recipe in moodRecommendations" :key="recipe.id" class="overflow-hidden flex flex-col">
+                      <img :src="recipe.image" :alt="recipe.title" class="w-full h-40 object-cover" />
+                      <CardHeader>
+                          <CardTitle>{{ recipe.title }}</CardTitle>
+                          <CardDescription class="mt-1">{{ recipe.description }}</CardDescription>
+                      </CardHeader>
+                      <CardContent class="flex-grow flex flex-col justify-end">
+                          <div class="flex items-center justify-between text-sm text-muted-foreground">
+                              <div class="flex items-center gap-1"><Clock class="h-4 w-4" /><span>{{ recipe.time }} min</span></div>
+                              <div class="flex items-center gap-1"><Leaf class="h-4 w-4" /><span>{{ recipe.diet }}</span></div>
+                          </div>
+                          <DialogTrigger as-child>
+                            <Button class="w-full mt-4 py-2" @click="viewRecipe(recipe)">View Recipe</Button>
+                          </DialogTrigger>
+                      </CardContent>
+                  </Card>
+              </div>
+              <p v-else class="text-muted-foreground text-center py-8">No matching recommendations for this mood and ingredients. Try another combination!</p>
+          </div>
+          <div v-else>
+            <Card class="border-dashed">
+              <CardContent class="h-64 flex flex-col items-center justify-center text-center p-6">
+                <Smile class="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 class="text-lg font-semibold">Ready for a recommendation?</h3>
+                <p class="text-muted-foreground">Select a mood above to see what we suggest!</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
+        
 
         <!-- PROFILE -->
         <div v-if="currentPage === 'profile'" class="space-y-8 max-w-2xl mx-auto">
