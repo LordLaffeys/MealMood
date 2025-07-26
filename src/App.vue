@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, provide } from 'vue'
+import { useCurrentUser } from 'vuefire'
+import { getFirestore, doc, onSnapshot, updateDoc, setDoc, getDoc } from 'firebase/firestore'
 import Auth from './pages/Auth.vue'
 import Dashboard from './pages/Dashboard.vue'
 import MoodTracker from './pages/MoodTracker.vue'
@@ -36,11 +38,43 @@ const showToast = (type: 'success' | 'error', message: string, description: stri
 // Provide toast function to all child components
 provide('showToast', showToast);
 
-// Import all page and layout components
-// In a real project, these would be in separate files e.g., './components/pages/Dashboard.vue'
+// Helper function to create initial user data
+const createInitialUserData = (email: string, name: string | null) => ({
+  email: email,
+  name: name || '',
+  preferences: {
+    isVegetarian: false,
+    isVegan: false,
+    isGlutenFree: false,
+    isHalal: false,
+    isLactoseIntolerant: false,
+    cuisines: {
+      Javanese: false,
+      Padang: false,
+      Sundanese: false,
+      ChineseIndonesian: false,
+      ComfortFood: false,
+      Japanese: false,
+      SpicyFood: false,
+      StreetFood: false,
+      Nusantara: false,
+    }
+  },
+  allergies: {
+    isNutAllergy: false,
+    isDairyAllergy: false,
+    isEggAllergy: false,
+    isFishAllergy: false,
+    isShellfishAllergy: false,
+  },
+  favoriteRecipes: [],
+  lastPickedRecipes: [],
+  darkMode: false,
+  hasCompletedOnboarding: false, // ✅ This is key!
+});
 
 // ---------------------------
-// MOCK DATA (Shared across components)
+// MOCK RECIPE DATA (Will be replaced later)
 // ---------------------------
 interface Recipe {
   id: number;
@@ -58,9 +92,6 @@ interface Recipe {
   cuisine: string;
 }
 
-// ---------------------------
-// MOCK DATA (Shared across components)
-// ---------------------------
 const mockRecipes = ref<Recipe[]>([
   { id: 4, title: "Avocado Toast with Egg", description: "A simple and satisfying breakfast.", mood: "Happy", time: 10, diet: "Vegetarian", image: "https://placehold.co/600x400/34d399/ffffff?text=Avocado+Toast", ingredients: ["Bread", "Avocado", "Egg", "Chili Flakes"], instructions: ["Toast your bread.", "Mash avocado on toast.", "Top with a fried egg."], mealType: "Breakfast", trending: true, favorite: true, cuisine: "American" },
   { id: 3, title: "Happy Chicken Salad", description: "A joyful and protein-packed salad.", mood: "Happy", time: 20, diet: "High-Protein", image: "https://placehold.co/600x400/fb923c/ffffff?text=Chicken+Salad", ingredients: ["Chicken", "Lettuce", "Tomatoes", "Avocado", "Vegetables"], instructions: ["Grill chicken breast.", "Chop vegetables.", "Combine and serve."], mealType: "Lunch", trending: true, favorite: false, cuisine: "American" },
@@ -76,33 +107,109 @@ const mockRecipes = ref<Recipe[]>([
   { id: 12, title: "Sheet Pan Lemon Herb Chicken", description: "An easy one-pan dinner.", mood: "Tired", time: 45, diet: "High-Protein", image: "https://placehold.co/600x400/f97316/ffffff?text=Sheet+Pan+Chicken", ingredients: ["Chicken", "Potatoes", "Green Beans", "Lemon", "Herbs", "Vegetables"], instructions: ["Toss all ingredients with olive oil and herbs.", "Arrange on a sheet pan.", "Bake at 400°F (200°C) for 30-35 minutes."], mealType: "Dinner", trending: false, favorite: true, cuisine: "American" },
 ]);
 
-const preferences = ref({
-  isVegetarian: localStorage.getItem('isVegetarian') === 'true',
-  isVegan: localStorage.getItem('isVegan') === 'true',
-  isHalal: localStorage.getItem('isHalal') === 'true',
-  hasNutAllergy: localStorage.getItem('hasNutAllergy') === 'true',
-  isGlutenFree: localStorage.getItem('isGlutenFree') === 'true',
-  hasDairyAllergy: localStorage.getItem('hasDairyAllergy') === 'true',
-  hasEggAllergy: localStorage.getItem('hasEggAllergy') === 'true',
-  hasFishAllergy: localStorage.getItem('hasFishAllergy') === 'true',
-  hasShellfishAllergy: localStorage.getItem('hasShellfishAllergy') === 'true',
-});
-
-watch(preferences, (newPrefs) => {
-  localStorage.setItem('isVegetarian', newPrefs.isVegetarian.toString())
-  localStorage.setItem('isVegan', newPrefs.isVegan.toString())
-  localStorage.setItem('hasNutAllergy', newPrefs.hasNutAllergy.toString())
-  localStorage.setItem('isGlutenFree', newPrefs.isGlutenFree.toString())
-}, { deep: true });
-
 // ---------------------------
 // APPLICATION STATE
 // ---------------------------
-const isAuthenticated = ref(false);
-const hasCompletedOnboarding = ref(false);
+const user = useCurrentUser();
+const db = getFirestore();
+const isAuthenticated = computed(() => !!user.value); 
+
+// ✅ FIXED: Added proper loading states
+const isAuthLoading = ref(true); // Loading authentication state
+const isDataLoading = ref(true); // Loading Firestore data
+const isAppReady = ref(false); // App is ready to show content
+
+// --- STATE IS NOW FETCHED FROM FIRESTORE ---
+const preferences = ref({}); // Initialized as empty, will be populated from Firestore
+const hasCompletedOnboarding = ref(false); // Default to false
+const isDarkMode = ref(false); // Default to false
+
 const currentPage = ref('dashboard');
 const selectedRecipe = ref<Recipe | null>(null);
-const isDarkMode = ref(localStorage.getItem('theme') === 'dark');
+
+// ✅ FIXED: Enhanced user document creation and data sync
+watch(user, async (currentUser) => {
+  if (currentUser) {
+    console.log('User authenticated:', currentUser.email);
+    isAuthLoading.value = false;
+    
+    try {
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      // ✅ Create user document if it doesn't exist
+      if (!userDoc.exists()) {
+        console.log('Creating new user document...');
+        const initialData = createInitialUserData(
+          currentUser.email || '',
+          currentUser.displayName
+        );
+        await setDoc(userDocRef, initialData);
+        console.log('User document created');
+      }
+      
+      // ✅ Set up real-time listener
+      onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          console.log('User data loaded:', data);
+          
+          preferences.value = data.preferences || {};
+          isDarkMode.value = data.darkMode || false;
+          hasCompletedOnboarding.value = data.hasCompletedOnboarding || false;
+          
+          // ✅ Mark data as loaded
+          isDataLoading.value = false;
+          isAppReady.value = true;
+        } else {
+          console.log('User document does not exist');
+          hasCompletedOnboarding.value = false;
+          isDataLoading.value = false;
+          isAppReady.value = true;
+        }
+      }, (error) => {
+        console.error('Error listening to user document:', error);
+        isDataLoading.value = false;
+        isAppReady.value = true;
+      });
+    } catch (error) {
+      console.error('Error setting up user document:', error);
+      isDataLoading.value = false;
+      isAppReady.value = true;
+    }
+  } else {
+    console.log('User not authenticated');
+    // ✅ Reset state when user logs out
+    preferences.value = {};
+    isDarkMode.value = false;
+    hasCompletedOnboarding.value = false;
+    isAuthLoading.value = false;
+    isDataLoading.value = false;
+    isAppReady.value = true;
+  }
+}, { immediate: true });
+
+// --- SAVE CHANGES BACK TO FIRESTORE ---
+// We use debounce to prevent writing to the database on every single keystroke/click.
+const debouncedUpdateUserDoc = debounce((data: object) => {
+  if (user.value) {
+    const userDocRef = doc(db, 'users', user.value.uid);
+    updateDoc(userDocRef, data).catch(error => console.error("Error updating document: ", error));
+  }
+}, 1000); // Wait 1 second after the last change before saving
+
+watch(preferences, (newPrefs) => {
+  if (isAppReady.value) { // Only save if app is ready
+    debouncedUpdateUserDoc({ preferences: newPrefs });
+  }
+}, { deep: true });
+
+watch(isDarkMode, (newVal) => {
+  document.documentElement.classList.toggle('dark', newVal);
+  if (isAppReady.value) { // Only save if app is ready
+    debouncedUpdateUserDoc({ darkMode: newVal });
+  }
+});
 
 // ---------------------------
 // GLOBAL METHODS
@@ -111,16 +218,28 @@ const navigate = (page: string) => {
   currentPage.value = page;
 };
 
+// --- EVENT HANDLERS ---
 const handleLoginSuccess = () => {
-  isAuthenticated.value = true;
-  // In a real app, you'd check if the user has completed onboarding from your backend
-  // For this mock, we assume a new login requires onboarding.
-  hasCompletedOnboarding.value = false; 
+  console.log('Login success event received');
 };
 
-const handleOnboardingComplete = () => {
-  hasCompletedOnboarding.value = true;
-  currentPage.value = 'dashboard';
+const handleOnboardingRequired = () => {
+  console.log('Onboarding required event received');
+};
+
+const handleOnboardingComplete = (updatedPreferences: any) => {
+  console.log('Onboarding complete with preferences:', updatedPreferences);
+  if (user.value) {
+    const userDocRef = doc(db, 'users', user.value.uid);
+    
+    // Update both the onboarding flag AND the preferences
+    updateDoc(userDocRef, { 
+      hasCompletedOnboarding: true,
+      preferences: updatedPreferences
+    });
+    
+    currentPage.value = 'dashboard';
+  }
 };
 
 const viewRecipe = (recipe: Recipe) => {
@@ -134,23 +253,23 @@ const toggleFavorite = (recipeId: number) => {
   }
 };
 
-// Theme management
-watch(isDarkMode, (value) => {
-  document.documentElement.classList.toggle('dark', value);
-  localStorage.setItem('theme', value ? 'dark' : 'light');
-});
-
-onMounted(() => {
-  if (isDarkMode.value) {
-    document.documentElement.classList.add('dark');
-  }
-});
-
-// Dynamically select which component to show
+// ✅ FIXED: Enhanced component selection with loading states
 const activeComponent = computed(() => {
-  if (!isAuthenticated.value) return Auth;
-  if (!hasCompletedOnboarding.value) return Onboarding;
+  // Don't show anything until we're ready
+  if (!isAppReady.value) {
+    return null; // Will show loading screen
+  }
   
+  if (!isAuthenticated.value) {
+    return Auth;
+  }
+  
+  // If authenticated, check onboarding status
+  if (!hasCompletedOnboarding.value) {
+    return Onboarding;
+  }
+  
+  // If authenticated and onboarding completed, show the current page
   switch (currentPage.value) {
     case 'dashboard': return Dashboard;
     case 'moodtracker': return MoodTracker;
@@ -158,6 +277,10 @@ const activeComponent = computed(() => {
     case 'profile': return Profile;
     default: return Dashboard;
   }
+});
+
+onMounted(() => {
+  console.log('App mounted');
 });
 </script>
 
@@ -204,33 +327,46 @@ const activeComponent = computed(() => {
       </div>
     </div>
 
-    <!-- Render Auth or Onboarding full-screen -->
-    <template v-if="!isAuthenticated || !hasCompletedOnboarding">
-      <component 
-        :is="activeComponent"
-        @login-success="handleLoginSuccess"
-        @onboarding-complete="handleOnboardingComplete"
-        :preferences="preferences"
-      />
-    </template>
-    
-    <!-- Main App Layout -->
+    <!-- ✅ FIXED: Loading Screen to prevent flashing -->
+    <div v-if="!isAppReady" class="w-full h-full flex items-center justify-center bg-background">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <h2 class="text-2xl font-bold text-primary mb-2">MealMood</h2>
+        <p class="text-muted-foreground">Loading your personalized experience...</p>
+      </div>
+    </div>
+
+    <!-- ✅ FIXED: Only render content when app is ready -->
     <template v-else>
-      <Sidebar :currentPage="currentPage" @navigate="navigate" />
-      
-      <main class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto pb-20 md:pb-8">
+      <!-- Render Auth or Onboarding full-screen -->
+      <template v-if="!isAuthenticated || !hasCompletedOnboarding">
         <component 
           :is="activeComponent"
-          :recipes="mockRecipes"
+          @login-success="handleLoginSuccess"
+          @onboarding-required="handleOnboardingRequired"
+          @onboarding-complete="handleOnboardingComplete"
           :preferences="preferences"
-          :isDarkMode="isDarkMode"
-          @view-recipe="viewRecipe"
-          @navigate="navigate"
-          @toggle-dark-mode="isDarkMode = !isDarkMode"
         />
-      </main>
+      </template>
       
-      <MobileNav :currentPage="currentPage" @navigate="navigate" />
+      <!-- Main App Layout -->
+      <template v-else>
+        <Sidebar :currentPage="currentPage" @navigate="navigate" />
+        
+        <main class="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto pb-20 md:pb-8">
+          <component 
+            :is="activeComponent"
+            :recipes="mockRecipes"
+            :preferences="preferences"
+            :isDarkMode="isDarkMode"
+            @view-recipe="viewRecipe"
+            @navigate="navigate"
+            @toggle-dark-mode="isDarkMode = !isDarkMode"
+          />
+        </main>
+        
+        <MobileNav :currentPage="currentPage" @navigate="navigate" />
+      </template>
     </template>
 
     <!-- Global Recipe Dialog -->
