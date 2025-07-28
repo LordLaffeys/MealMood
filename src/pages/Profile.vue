@@ -180,6 +180,8 @@ const toggleDarkMode = () => {
   emit('toggle-dark-mode');
 };
 
+
+
 // Data structure for form sections
 const preferenceSections = {
   'Dietary Preferences': {
@@ -340,7 +342,7 @@ watch(user, (newUser) => {
           @click="saveChanges"
           :disabled="!hasChanges || isSaving"
           :class="[
-            'transition-all duration-300',
+            'transition-all duration-200 hover:scale-105 hover:shadow-md',
             !hasChanges ? 'opacity-50 cursor-not-allowed' : 'opacity-100'
           ]"
         >
@@ -348,6 +350,29 @@ watch(user, (newUser) => {
           {{ isSaving ? 'Saving...' : 'Save Changes' }}
         </Button>
       </div>
+
+      <Card class="border-destructive">
+        <CardContent>
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-semibold">Log Out</h3>
+              <p class="text-sm text-muted-foreground">
+                Sign out of your account on this device.
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              @click=""
+              class="transition-all duration-200 hover:scale-105 hover:shadow-md"
+            >
+              Log Out
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+
+
     </div>
   </div>
 </template>
