@@ -59,7 +59,7 @@ const cuisineFilter = ref('All');
 const dietFilter = ref('All');
 
 // Updated ingredient keywords to be more relevant to Indonesian cuisine
-const ingredientKeywords = ['Chicken', 'Fish', 'Beef', 'Vegetables', 'Rice', 'Noodles', 'Tofu', 'Tempeh'];
+const ingredientKeywords = ['Ayam', 'Ikan', 'Daging', 'Sayur', 'Nasi', 'Mie', 'Tahu', 'Tempe', 'Telur', 'Sambal'];
 const recipePageActiveKeywords = ref<string[]>([]);
 
 const toggleRecipePageIngredient = (keyword: string) => {

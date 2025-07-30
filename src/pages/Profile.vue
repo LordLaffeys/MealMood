@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 // Firebase imports
 import { useCurrentUser } from 'vuefire';
 import { getFirestore, doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { getAuth, signOut } from 'firebase/auth';
 
 // Inject toast function
 const showToast = inject('showToast') as (type: 'success' | 'error', message: string, description: string) => void;
@@ -32,9 +33,46 @@ const emit = defineEmits(['toggle-dark-mode']);
 // Firebase setup
 const user = useCurrentUser();
 const db = getFirestore();
+const auth = getAuth();
+
+// Define types for better type safety
+interface UserPreferences {
+  isVegetarian: boolean;
+  isVegan: boolean;
+  isHalal: boolean;
+  isGlutenFree: boolean;
+  isLactoseIntolerant: boolean;
+  cuisines: {
+    Javanese: boolean;
+    Padang: boolean;
+    Sundanese: boolean;
+    ChineseIndonesian: boolean;
+    ComfortFood: boolean;
+    Japanese: boolean;
+    SpicyFood: boolean;
+    StreetFood: boolean;
+    Nusantara: boolean;
+  };
+}
+
+interface UserAllergies {
+  isNutAllergy: boolean;
+  isDairyAllergy: boolean;
+  isEggAllergy: boolean;
+  isFishAllergy: boolean;
+  isShellfishAllergy: boolean;
+}
+
+interface UserData {
+  name: string;
+  email: string;
+  preferences: UserPreferences;
+  allergies: UserAllergies;
+  darkMode: boolean;
+}
 
 // User data state
-const userData = ref({
+const userData = ref<UserData>({
   name: '',
   email: '',
   preferences: {
@@ -65,12 +103,42 @@ const userData = ref({
   darkMode: false,
 });
 
-// Original data for comparison
-const originalData = ref({});
+// Original data for comparison - properly typed
+const originalData = ref<UserData>({
+  name: '',
+  email: '',
+  preferences: {
+    isVegetarian: false,
+    isVegan: false,
+    isHalal: false,
+    isGlutenFree: false,
+    isLactoseIntolerant: false,
+    cuisines: {
+      Javanese: false,
+      Padang: false,
+      Sundanese: false,
+      ChineseIndonesian: false,
+      ComfortFood: false,
+      Japanese: false,
+      SpicyFood: false,
+      StreetFood: false,
+      Nusantara: false,
+    }
+  },
+  allergies: {
+    isNutAllergy: false,
+    isDairyAllergy: false,
+    isEggAllergy: false,
+    isFishAllergy: false,
+    isShellfishAllergy: false,
+  },
+  darkMode: false,
+});
 
 // Loading states
 const isLoading = ref(true);
 const isSaving = ref(false);
+const isLoggingOut = ref(false);
 
 // Fetch user data from Firebase
 const fetchUserData = () => {
@@ -180,10 +248,28 @@ const toggleDarkMode = () => {
   emit('toggle-dark-mode');
 };
 
+// Handle logout
+const handleLogout = async () => {
+  isLoggingOut.value = true;
+  
+  try {
+    await signOut(auth);
+    showToast('success', 'Logged Out', 'You have been successfully logged out');
+  } catch (error) {
+    console.error('Error logging out:', error);
+    showToast('error', 'Logout Failed', 'Failed to log out. Please try again.');
+  } finally {
+    isLoggingOut.value = false;
+  }
+};
 
+// Data structure for form sections with proper typing
+interface PreferenceSection {
+  field: keyof Pick<UserData, 'preferences' | 'allergies'>;
+  options: Record<string, string>;
+}
 
-// Data structure for form sections
-const preferenceSections = {
+const preferenceSections: Record<string, PreferenceSection> = {
   'Dietary Preferences': {
     field: 'preferences',
     options: {
@@ -308,7 +394,7 @@ watch(user, (newUser) => {
               <div v-for="(label, key) in section.options" :key="key" class="flex items-center space-x-2">
                 <Checkbox 
                   :id="key" 
-                  v-model="userData[section.field][key]" 
+                  v-model="(userData[section.field] as any)[key]" 
                 />
                 <Label :for="key" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                   {{ label }}
@@ -325,7 +411,7 @@ watch(user, (newUser) => {
               <div v-for="(label, key) in cuisineOptions" :key="key" class="flex items-center space-x-2">
                 <Checkbox 
                   :id="`cuisine-${key}`" 
-                  v-model="userData.preferences.cuisines[key]" 
+                  v-model="(userData.preferences.cuisines as any)[key]" 
                 />
                 <Label :for="`cuisine-${key}`" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                   {{ label }}
@@ -351,6 +437,7 @@ watch(user, (newUser) => {
         </Button>
       </div>
 
+      <!-- Logout Card -->
       <Card class="border-destructive">
         <CardContent>
           <div class="flex items-center justify-between">
@@ -362,17 +449,16 @@ watch(user, (newUser) => {
             </div>
             <Button
               variant="destructive"
-              @click=""
+              @click="handleLogout"
+              :disabled="isLoggingOut"
               class="transition-all duration-200 hover:scale-105 hover:shadow-md"
             >
-              Log Out
+              <div v-if="isLoggingOut" class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              {{ isLoggingOut ? 'Logging Out...' : 'Log Out' }}
             </Button>
           </div>
         </CardContent>
       </Card>
-
-
-
     </div>
   </div>
 </template>

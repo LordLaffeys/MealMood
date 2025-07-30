@@ -141,6 +141,7 @@ const isAppReady = ref(false);
 
 // User state from Firestore
 const preferences = ref({});
+const allergies = ref({}); // Add allergies to the app state
 const hasCompletedOnboarding = ref(false);
 const isDarkMode = ref(false);
 const userFavorites = ref<number[]>([]);
@@ -176,6 +177,7 @@ watch(user, async (currentUser) => {
           console.log('User data loaded:', data);
           
           preferences.value = data.preferences || {};
+          allergies.value = data.allergies || {}; // Load allergies too
           isDarkMode.value = data.darkMode || false;
           hasCompletedOnboarding.value = data.hasCompletedOnboarding || false;
           userFavorites.value = data.favoriteRecipes || [];
@@ -203,6 +205,7 @@ watch(user, async (currentUser) => {
     console.log('User not authenticated');
     // Reset state when user logs out
     preferences.value = {};
+    allergies.value = {};
     isDarkMode.value = false;
     hasCompletedOnboarding.value = false;
     userFavorites.value = [];
@@ -223,6 +226,12 @@ const debouncedUpdateUserDoc = debounce((data: object) => {
 watch(preferences, (newPrefs) => {
   if (isAppReady.value) {
     debouncedUpdateUserDoc({ preferences: newPrefs });
+  }
+}, { deep: true });
+
+watch(allergies, (newAllergies) => {
+  if (isAppReady.value) {
+    debouncedUpdateUserDoc({ allergies: newAllergies });
   }
 }, { deep: true });
 
@@ -255,17 +264,29 @@ const handleOnboardingRequired = () => {
   console.log('Onboarding required event received');
 };
 
-const handleOnboardingComplete = (updatedPreferences: any) => {
-  console.log('Onboarding complete with preferences:', updatedPreferences);
+// FIXED: Properly handle onboarding completion data structure
+const handleOnboardingComplete = async (userData: any) => {
+  console.log('Onboarding complete with data:', userData);
+  
   if (user.value) {
-    const userDocRef = doc(db, 'users', user.value.uid);
-    
-    updateDoc(userDocRef, { 
-      hasCompletedOnboarding: true,
-      preferences: updatedPreferences
-    });
-    
-    currentPage.value = 'dashboard';
+    try {
+      const userDocRef = doc(db, 'users', user.value.uid);
+      
+      // FIXED: Save the data in the correct structure
+      await updateDoc(userDocRef, { 
+        hasCompletedOnboarding: true,
+        preferences: userData.preferences,  // Save preferences correctly
+        allergies: userData.allergies       // Save allergies correctly
+      });
+      
+      console.log('Onboarding data saved successfully');
+      showToast('success', 'Welcome to MealMood!', 'Your preferences have been saved.');
+      
+      currentPage.value = 'dashboard';
+    } catch (error) {
+      console.error('Error saving onboarding data:', error);
+      showToast('error', 'Error', 'Failed to save your preferences. Please try again.');
+    }
   }
 };
 
@@ -307,6 +328,13 @@ const activeComponent = computed(() => {
     default: return Dashboard;
   }
 });
+
+// Create a combined preferences object to pass to components
+const combinedUserData = computed(() => ({
+  preferences: preferences.value,
+  allergies: allergies.value,
+  isDarkMode: isDarkMode.value
+}));
 
 onMounted(() => {
   console.log('App mounted');
@@ -377,7 +405,7 @@ onMounted(() => {
           @login-success="handleLoginSuccess"
           @onboarding-required="handleOnboardingRequired"
           @onboarding-complete="handleOnboardingComplete"
-          :preferences="preferences"
+          :preferences="combinedUserData"
         />
       </template>
       
@@ -389,7 +417,7 @@ onMounted(() => {
           <component 
             :is="activeComponent"
             :recipes="recipes"
-            :preferences="preferences"
+            :preferences="combinedUserData"
             :isDarkMode="isDarkMode"
             @view-recipe="viewRecipe"
             @navigate="navigate"
