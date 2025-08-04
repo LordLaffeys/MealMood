@@ -4,13 +4,13 @@ import type { Recipe } from '@/types/recipe';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Clock, Leaf, Smile, AlertTriangle } from 'lucide-vue-next';
+import { Heart, Clock, Leaf, Smile, AlertTriangle, ChefHat } from 'lucide-vue-next';
 
 const props = defineProps<{
   recipe: Recipe | null;
 }>();
 
-const emit = defineEmits(['close', 'toggle-favorite']);
+const emit = defineEmits(['close', 'toggle-favorite', 'pick-recipe']);
 
 const isOpen = computed({
   get: () => !!props.recipe,
@@ -63,6 +63,13 @@ const getActiveAllergies = (allergyWarning: Recipe['allergyWarning']) => {
 const getPrimaryDiet = (dietArray: string[]) => {
   if (!dietArray || dietArray.length === 0) return 'General';
   return dietArray[0];
+};
+
+// Handle pick recipe click
+const handlePickRecipe = () => {
+  if (props.recipe) {
+    emit('pick-recipe', props.recipe);
+  }
 };
 </script>
 
@@ -169,9 +176,15 @@ const getPrimaryDiet = (dietArray: string[]) => {
           <Heart class="h-5 w-5 mr-2" :class="{'text-red-500 fill-current': recipe.favorite}" />
           {{ recipe.favorite ? 'Favorited' : 'Add to Favorites' }}
         </Button>
-        <Button type="button" variant="secondary" @click="emit('close')">
-          Close
-        </Button>
+        <div class="flex gap-2">
+          <Button type="button" variant="secondary" @click="emit('close')">
+            Close
+          </Button>
+          <Button type="button" @click="handlePickRecipe" class="bg-primary hover:bg-primary/90">
+            <ChefHat class="h-5 w-5 mr-2" />
+            Pick Recipe
+          </Button>
+        </div>
       </DialogFooter>
     </DialogContent>
   </Dialog>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, provide } from 'vue'
 import { useCurrentUser } from 'vuefire'
-import { getFirestore, doc, onSnapshot, updateDoc, setDoc, getDoc, collection } from 'firebase/firestore'
+import { getFirestore, doc, onSnapshot, updateDoc, setDoc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { useCollection } from 'vuefire'
 import Auth from './pages/Auth.vue'
 import Dashboard from './pages/Dashboard.vue'
@@ -303,6 +303,36 @@ const toggleFavorite = (recipeId: number) => {
   }
 };
 
+// NEW: Handle recipe picking and mood logging
+const pickRecipe = async (recipe: Recipe) => {
+  if (!user.value) {
+    showToast('error', 'Error', 'You must be logged in to pick a recipe.');
+    return;
+  }
+
+  try {
+    // Add mood log to Firestore
+    const moodLogsCollection = collection(db, 'moodLogs');
+    await addDoc(moodLogsCollection, {
+      userId: user.value.uid,
+      recipeId: recipe.id.toString(), // Convert to string if needed
+      mood: recipe.mood,
+      timestamp: serverTimestamp()
+    });
+
+    // Close the dialog
+    selectedRecipe.value = null;
+    
+    // Show success toast
+    showToast('success', 'Recipe Picked!', `Great choice! We've logged your ${recipe.mood.toLowerCase()} mood.`);
+    
+    console.log('Mood log saved successfully for recipe:', recipe.title);
+  } catch (error) {
+    console.error('Error saving mood log:', error);
+    showToast('error', 'Error', 'Failed to pick recipe. Please try again.');
+  }
+};
+
 // Enhanced component selection with loading states
 const activeComponent = computed(() => {
   // Don't show anything until we're ready
@@ -375,7 +405,7 @@ onMounted(() => {
               class="bg-white dark:bg-gray-800 rounded-md inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <span class="sr-only">Close</span>
-              <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+              <svg class="h-4 w-4" viewBox="0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
               </svg>
             </button>
@@ -434,6 +464,7 @@ onMounted(() => {
       :recipe="selectedRecipe" 
       @close="selectedRecipe = null"
       @toggle-favorite="toggleFavorite"
+      @pick-recipe="pickRecipe"
     />
   </div>
 </template>
