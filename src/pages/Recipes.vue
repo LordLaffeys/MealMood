@@ -272,14 +272,12 @@ const filteredRecipes = computed(() => {
               <Clock class="h-4 w-4" />
               <span>{{ recipe.time }} min</span>
             </div>
-            <div class="flex items-center gap-1">
+            <!-- <div class="flex items-center gap-1">
               <Leaf class="h-4 w-4" />
               <span>{{ getPrimaryDiet(recipe.diet) }}</span>
-            </div>
-          </div>
-          
-          <!-- Diet tags -->
-          <div class="flex flex-wrap gap-1 mb-3">
+            </div> -->
+
+            <div class="flex flex-wrap gap-1 mb-3">
             <span 
               v-for="diet in recipe.diet?.slice(0, 3)" 
               :key="diet"
@@ -294,6 +292,24 @@ const filteredRecipes = computed(() => {
               +{{ recipe.diet.length - 3 }} more
             </span>
           </div>
+          </div>
+          
+          <!-- Diet tags -->
+          <!-- <div class="flex flex-wrap gap-1 mb-3">
+            <span 
+              v-for="diet in recipe.diet?.slice(0, 3)" 
+              :key="diet"
+              class="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-full"
+            >
+              {{ diet }}
+            </span>
+            <span 
+              v-if="recipe.diet && recipe.diet.length > 3"
+              class="text-xs text-muted-foreground"
+            >
+              +{{ recipe.diet.length - 3 }} more
+            </span>
+          </div> -->
           
           <Button class="w-full py-2" @click="emit('view-recipe', recipe)">
             View Recipe

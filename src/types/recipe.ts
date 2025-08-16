@@ -1,6 +1,7 @@
 // types/recipe.ts
 export interface Recipe {
-  id: number;
+  trendingScore: number;
+  id: string;
   title: string;
   description: string;
   mood: string;

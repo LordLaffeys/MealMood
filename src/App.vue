@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, provide } from 'vue'
 import { useCurrentUser } from 'vuefire'
-import { getFirestore, doc, onSnapshot, updateDoc, setDoc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, doc, onSnapshot, updateDoc, setDoc, getDoc, collection, addDoc, serverTimestamp, increment  } from 'firebase/firestore'
 import { useCollection } from 'vuefire'
 import Auth from './pages/Auth.vue'
 import Dashboard from './pages/Dashboard.vue'
@@ -106,8 +106,13 @@ interface Recipe {
     isFishAllergy: boolean;
     isShellfishAllergy: boolean;
   };
+  // Recipe stats fields
+  trendingScore?: number;
+  pickCount?: number;
+  favoriteCount?: number;
+  unfavoriteCount?: number;
   favorite?: boolean; // This will be managed locally or in user's favorites
-  trending?: boolean; // This can be computed or added to Firestore
+  // trending?: boolean; // This can be computed based on trendingScore
 }
 
 // Initialize Firestore
@@ -124,7 +129,11 @@ const recipes = computed(() => {
   return firestoreRecipes.value.map(recipe => ({
     ...recipe,
     favorite: userFavorites.value.includes(recipe.id) || false,
-    trending: false // You can implement trending logic here
+    trendingScore: recipe.trendingScore ?? 0,
+    pickCount: recipe.pickCount ?? 0,
+    favoriteCount: recipe.favoriteCount ?? 0,
+    unfavoriteCount: recipe.unfavoriteCount ?? 0
+    // trending: (recipe.trendingScore || 0) > 50 // Mark as trending if trendingScore > 50
   })) as Recipe[];
 });
 
@@ -294,12 +303,43 @@ const viewRecipe = (recipe: Recipe) => {
   selectedRecipe.value = recipe;
 };
 
-const toggleFavorite = (recipeId: number) => {
-  const index = userFavorites.value.indexOf(recipeId);
-  if (index === -1) {
-    userFavorites.value.push(recipeId);
-  } else {
-    userFavorites.value.splice(index, 1);
+const toggleFavorite = async (recipeId: number) => {
+  if (!user.value) {
+    showToast('error', 'Error', 'You must be logged in to favorite recipes.');
+    return;
+  }
+
+  try {
+    const index = userFavorites.value.indexOf(recipeId);
+    const recipeDocRef = doc(db, 'recipes', recipeId.toString());
+    
+    if (index === -1) {
+      // Adding to favorites
+      userFavorites.value.push(recipeId);
+      
+      // Update recipe stats: favoriteCount +1, trendingScore +10
+      await updateDoc(recipeDocRef, {
+        favoriteCount: increment(1),
+        trendingScore: increment(10)
+      });
+      
+      showToast('success', 'Added to Favorites!', 'Recipe has been added to your favorites.');
+      console.log('Recipe favorited: favoriteCount +1, trendingScore +10');
+    } else {
+      // Removing from favorites
+      userFavorites.value.splice(index, 1);
+      
+      // Update recipe stats: unfavoriteCount +1 (no change to trendingScore)
+      await updateDoc(recipeDocRef, {
+        unfavoriteCount: increment(1)
+      });
+      
+      showToast('success', 'Removed from Favorites', 'Recipe has been removed from your favorites.');
+      console.log('Recipe unfavorited: unfavoriteCount +1');
+    }
+  } catch (error) {
+    console.error('Error updating favorite status:', error);
+    showToast('error', 'Error', 'Failed to update favorite status. Please try again.');
   }
 };
 
@@ -320,6 +360,13 @@ const pickRecipe = async (recipe: Recipe) => {
       timestamp: serverTimestamp()
     });
 
+    // Update recipe stats: pickCount +1, trendingScore +1
+    const recipeDocRef = doc(db, 'recipes', recipe.id.toString());
+    await updateDoc(recipeDocRef, {
+      pickCount: increment(1),
+      trendingScore: increment(1)
+    });
+
     // Close the dialog
     selectedRecipe.value = null;
     
@@ -327,8 +374,9 @@ const pickRecipe = async (recipe: Recipe) => {
     showToast('success', 'Recipe Picked!', `Great choice! We've logged your ${recipe.mood.toLowerCase()} mood.`);
     
     console.log('Mood log saved successfully for recipe:', recipe.title);
+    console.log('Recipe stats updated: pickCount +1, trendingScore +1');
   } catch (error) {
-    console.error('Error saving mood log:', error);
+    console.error('Error saving mood log or updating recipe stats:', error);
     showToast('error', 'Error', 'Failed to pick recipe. Please try again.');
   }
 };
