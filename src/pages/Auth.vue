@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
 // Firebase imports
-import { useFirebaseAuth, useCurrentUser } from 'vuefire';
+import { useFirebaseAuth } from 'vuefire';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
