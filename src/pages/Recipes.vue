@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Clock, Leaf } from 'lucide-vue-next';
+import { Search, Clock } from 'lucide-vue-next';
 
 // Define the Recipe type to match Firestore structure
 interface Recipe {
@@ -111,11 +111,11 @@ const getCuisineDisplayName = (cuisine: string) => {
   return displayNames[cuisine] || cuisine;
 };
 
-// Helper function to get primary diet for display
-const getPrimaryDiet = (dietArray: string[]) => {
-  if (!dietArray || dietArray.length === 0) return 'General';
-  return dietArray[0];
-};
+// // Helper function to get primary diet for display
+// const getPrimaryDiet = (dietArray: string[]) => {
+//   if (!dietArray || dietArray.length === 0) return 'General';
+//   return dietArray[0];
+// };
 
 // Helper function to check if recipe matches cuisine filter
 const matchesCuisineFilter = (recipe: Recipe) => {

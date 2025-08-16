@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useCurrentUser } from 'vuefire';
-import { getFirestore, doc, updateDoc, arrayUnion, collection, query, where, orderBy, limit, getDocs, Timestamp } from 'firebase/firestore';
-import { FirebaseError } from "firebase/app";
+import { getFirestore, doc, updateDoc, arrayUnion, collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+// import { FirebaseError } from "firebase/app";
 import Chart from 'primevue/chart';
 import type { Recipe } from '@/types/recipe';
 import type { MoodLog, WeeklyMoodSummary, MoodType } from '@/types/mood';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Clock, Leaf, TrendingUp, Heart } from 'lucide-vue-next';
+import type { FirebaseError } from 'firebase/app';
 
 const props = defineProps<{
   recipes: Recipe[];
@@ -111,11 +112,12 @@ const fetchMoodLogs = async () => {
     moodLogsData.value = logs;
     console.log('Final processed mood logs:', logs);
     } catch (error) {
+      const e = error as FirebaseError;
       console.error('Error fetching mood logs:', error);
       console.error('Error details:', {
-        code: error.code,
-        message: error.message,
-        stack: error.stack
+        code: e.code,
+        message: e.message,
+        stack: e.stack
       });
     
     // If there's an error with the complex query, try a simpler one
@@ -334,18 +336,9 @@ const lastViewedRecipes = computed(() => {
 
   // Map logs to recipes
   return recentLogs
-    .map(log => props.recipes.find(r => r.id === log.recipeId))
+    .map(log => props.recipes.find(r => r.id.toString() === log.recipeId))
     .filter(Boolean) as Recipe[];
 });
-
-function stringToHash(str: string) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash << 5) - hash + str.charCodeAt(i);
-    hash |= 0; // convert to 32bit int
-  }
-  return Math.abs(hash);
-}
 
 // Get daily quick picks based on the current date (changes daily)
 const quickPicks = computed(() => {
@@ -363,8 +356,8 @@ const quickPicks = computed(() => {
   
   // Shuffle recipes based on the daily seed
   const shuffled = [...mealTypeRecipes].sort((a, b) => {
-  const aHash = (stringToHash(a.id) * seed) % 1000;
-  const bHash = (stringToHash(b.id) * seed) % 1000;
+  const aHash = (a.id * seed) % 1000;
+  const bHash = (b.id * seed) % 1000;
   return aHash - bHash;
 });
   

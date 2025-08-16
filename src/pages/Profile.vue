@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, inject } from 'vue';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -14,18 +14,6 @@ import { getAuth, signOut } from 'firebase/auth';
 
 // Inject toast function
 const showToast = inject('showToast') as (type: 'success' | 'error', message: string, description: string) => void;
-
-// Props from App.vue
-const props = defineProps({
-  preferences: {
-    type: Object,
-    required: true,
-  },
-  isDarkMode: {
-    type: Boolean,
-    required: true,
-  }
-});
 
 // Emits
 const emit = defineEmits(['toggle-dark-mode']);

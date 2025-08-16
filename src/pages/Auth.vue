@@ -27,7 +27,7 @@ const authPage = ref('login'); // 'login' or 'signup'
 
 // Firebase auth and Firestore
 const auth = useFirebaseAuth()!;
-const user = useCurrentUser();
+// const user = useCurrentUser();
 const googleProvider = new GoogleAuthProvider();
 const db = getFirestore(getApp());
 
@@ -52,6 +52,7 @@ const initialUserData = (email: string, name: string | null) => ({
       Japanese: false,
       SpicyFood: false,
       StreetFood: false,
+      Nusantara: false,
     }
   },
   allergies: {
@@ -98,34 +99,31 @@ const isSignUpFormInvalid = computed(() => {
 // Google Sign In
 const handleGoogleSignIn = async () => {
   if (isGoogleLoading.value) return;
-  
   isGoogleLoading.value = true;
-  
+
   try {
     const result = await signInWithPopup(auth, googleProvider);
     const user = result.user;
 
-    // --- CHANGE: Simplified Firestore path ---
     const userDocRef = doc(db, `users/${user.uid}`);
-    // --- END CHANGE ---
-    
     const userDocSnap = await getDoc(userDocRef);
 
     if (!userDocSnap.exists()) {
       await setDoc(userDocRef, initialUserData(user.email || '', user.displayName));
       showToast('success', 'Account Created!', 'Welcome to MealMood!');
     } else {
-      showToast('success', 'Welcome Back!', `Successfully signed in with Google as ${user.displayName || user.email}`);
+      showToast('success', 'Welcome Back!', `Signed in as ${user.displayName || user.email}`);
     }
-    
+
     emit('login-success');
   } catch (error: any) {
     console.error('Google sign in error:', error);
     let errorMessage = 'Failed to sign in with Google';
-    
+
     switch (error.code) {
       case 'auth/popup-closed-by-user':
         errorMessage = 'Sign in was cancelled';
+        isGoogleLoading.value = false;
         break;
       case 'auth/popup-blocked':
         errorMessage = 'Popup was blocked by browser';
@@ -136,12 +134,13 @@ const handleGoogleSignIn = async () => {
       default:
         errorMessage = error.message || 'An unexpected error occurred';
     }
-    
+
     showToast('error', 'Google Sign In Failed', errorMessage);
   } finally {
     isGoogleLoading.value = false;
   }
 };
+
 
 // Email/Password Login
 const handleLogin = async () => {

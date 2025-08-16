@@ -106,13 +106,12 @@ interface Recipe {
     isFishAllergy: boolean;
     isShellfishAllergy: boolean;
   };
-  // Recipe stats fields
-  trendingScore?: number;
-  pickCount?: number;
-  favoriteCount?: number;
-  unfavoriteCount?: number;
-  favorite?: boolean; // This will be managed locally or in user's favorites
-  // trending?: boolean; // This can be computed based on trendingScore
+  // Make these required instead of optional
+  trendingScore: number;
+  pickCount: number;
+  favoriteCount: number;
+  unfavoriteCount: number;
+  favorite: boolean; // Remove the ? to make it required
 }
 
 // Initialize Firestore
@@ -128,12 +127,12 @@ const recipes = computed(() => {
   
   return firestoreRecipes.value.map(recipe => ({
     ...recipe,
+    // Ensure all optional properties have default values
     favorite: userFavorites.value.includes(recipe.id) || false,
     trendingScore: recipe.trendingScore ?? 0,
     pickCount: recipe.pickCount ?? 0,
     favoriteCount: recipe.favoriteCount ?? 0,
     unfavoriteCount: recipe.unfavoriteCount ?? 0
-    // trending: (recipe.trendingScore || 0) > 50 // Mark as trending if trendingScore > 50
   })) as Recipe[];
 });
 

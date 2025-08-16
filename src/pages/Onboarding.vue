@@ -127,7 +127,7 @@ const cuisineOptions = {
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div v-for="(label, key) in section.options" :key="key" class="flex items-center space-x-2">
               <!-- The v-model now correctly points to the nested property -->
-              <Checkbox :id="key" v-model="localUserData[section.field][key]" />
+              <!-- <Checkbox :id="key" v-model="localUserData[section.field][key]" /> -->
               <Label :for="key" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 {{ label }}
               </Label>

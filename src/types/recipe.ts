@@ -1,7 +1,6 @@
 // types/recipe.ts
 export interface Recipe {
-  trendingScore: number;
-  id: string;
+  id: number;
   title: string;
   description: string;
   mood: string;
@@ -29,8 +28,11 @@ export interface Recipe {
     isFishAllergy: boolean;
     isShellfishAllergy: boolean;
   };
-  favorite?: boolean;
-  trending?: boolean;
+  trendingScore: number;
+  pickCount: number;
+  favoriteCount: number;
+  unfavoriteCount: number;
+  favorite: boolean;
 }
 
 export interface UserPreferences {
